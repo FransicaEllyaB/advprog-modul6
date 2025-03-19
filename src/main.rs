@@ -1,7 +1,9 @@
 use std::{
     fs,
     io::{prelude::*,BufReader},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener,  TcpStream},
+    thread,
+    time::Duration,
 };
 
 fn main() {
@@ -17,14 +19,14 @@ fn handle_connection(mut stream: TcpStream) {
     let buf_reader = BufReader::new(&mut stream); 
     let request_line = buf_reader.lines().next().unwrap().unwrap();
  
-    let (status_line, filename);
-    if request_line == "GET / HTTP/1.1" {
-        status_line = "HTTP/1.1 200 OK";
-        filename = "hello.html";
-    } else {
-        status_line = "HTTP/1.1 404 NOT FOUND";
-        filename = "404.html";
-    }
+    let (status_line, filename) = match &request_line[..] {
+        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"), 
+        "GET /sleep HTTP/1.1" => {
+            thread::sleep(Duration::from_secs(10));
+            ("HTTP/1.1 200 OK", "hello.html") 
+        }
+        _ => ("HTTP/1.1 404 NOT FOUND", "404.html"),
+    };
 
     let response = build_response(status_line, filename);
     stream.write_all(response.as_bytes()).unwrap(); 
